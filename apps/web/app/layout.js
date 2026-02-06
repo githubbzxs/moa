@@ -1,8 +1,8 @@
-﻿import './globals.css'
+import "./globals.css"
 
 export const metadata = {
-  title: 'Moa Web',
-  description: 'Moa Web Application'
+  title: "ChatGPT Clone",
+  description: "ChatGPT 风格聊天界面（Next.js）"
 }
 
 export default function RootLayout({ children }) {
