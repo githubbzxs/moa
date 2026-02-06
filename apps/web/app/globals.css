@@ -185,6 +185,41 @@ body {
   font-weight: 600;
 }
 
+.cgpt-agent-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cgpt-agent-toolbar .cgpt-panel-title {
+  margin: 0;
+}
+
+.cgpt-mini-btn,
+.cgpt-link-btn {
+  border: 1px solid var(--border-color);
+  background: #252525;
+  color: var(--text-primary);
+  border-radius: 8px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cgpt-mini-btn:hover,
+.cgpt-link-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #2d2d2d;
+}
+
+.cgpt-link-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .cgpt-field {
   display: flex;
   flex-direction: column;
@@ -197,7 +232,8 @@ body {
   color: var(--text-secondary);
 }
 
-.cgpt-field input {
+.cgpt-field input,
+.cgpt-field textarea {
   width: 100%;
   height: 34px;
   border: 1px solid var(--border-color);
@@ -208,8 +244,46 @@ body {
   outline: none;
 }
 
-.cgpt-field input:focus {
+.cgpt-field textarea {
+  min-height: 56px;
+  height: auto;
+  resize: vertical;
+  padding: 8px 10px;
+  font-family: inherit;
+}
+
+.cgpt-field input:focus,
+.cgpt-field textarea:focus {
   border-color: rgba(255, 255, 255, 0.26);
+}
+
+.cgpt-agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.cgpt-agent-card {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #202020;
+  padding: 10px;
+}
+
+.cgpt-agent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cgpt-agent-head strong {
+  font-size: 12px;
+  color: var(--text-primary);
 }
 
 .cgpt-config-tip {

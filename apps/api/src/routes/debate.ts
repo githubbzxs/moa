@@ -14,31 +14,48 @@ const llmConfigSchema = z
   })
   .strict()
 
+const debateAgentSchema = z
+  .object({
+    id: z.string().trim().min(1, 'agents[].id 不能为空').max(120, 'agents[].id 过长').optional(),
+    name: z.string().trim().min(1, 'agents[].name 不能为空').max(80, 'agents[].name 过长'),
+    responsibility: z
+      .string()
+      .trim()
+      .min(1, 'agents[].responsibility 不能为空')
+      .max(400, 'agents[].responsibility 过长'),
+    llm: llmConfigSchema.optional()
+  })
+  .strict()
+
 const debateAnswerSchema = z.object({
   question: z
     .string()
     .trim()
     .min(1, 'question 不能为空')
     .max(4000, 'question 长度不能超过 4000'),
-  llm: llmConfigSchema.optional()
+  llm: llmConfigSchema.optional(),
+  agents: z
+    .array(debateAgentSchema)
+    .min(2, 'agents 至少需要 2 个智能体')
+    .max(8, 'agents 最多支持 8 个智能体')
+    .optional()
 })
 
-type DebateRoleId = 'analyst' | 'challenger' | 'integrator'
-
 interface DebateRole {
-  id: DebateRoleId
+  id: string
   name: string
   responsibility: string
+  runtimeConfig?: LlmRuntimeConfig
 }
 
 interface DebateTurn {
   round: 1 | 2
-  roleId: DebateRoleId
+  roleId: string
   role: string
   content: string
 }
 
-const debateRoles: DebateRole[] = [
+const defaultDebateRoles: DebateRole[] = [
   {
     id: 'analyst',
     name: '分析师',
@@ -61,13 +78,15 @@ export async function debateRoutes(app: FastifyInstance) {
     const body = debateAnswerSchema.parse(request.body)
     const question = body.question.trim()
     const runtimeConfig = normalizeRuntimeConfig(body.llm)
+    const debateRoles = resolveDebateRoles(body.agents)
     const transcript: DebateTurn[] = []
 
     for (const role of debateRoles) {
+      const roleConfig = mergeRuntimeConfig(role.runtimeConfig, runtimeConfig)
       const content = await callOpenAiCompatible(
         buildRoundOnePrompt(question, role),
         0.7,
-        runtimeConfig
+        roleConfig
       )
       transcript.push({
         round: 1,
@@ -79,10 +98,11 @@ export async function debateRoutes(app: FastifyInstance) {
 
     for (const role of debateRoles) {
       const roundOneOthers = transcript.filter((item) => item.round === 1 && item.roleId !== role.id)
+      const roleConfig = mergeRuntimeConfig(role.runtimeConfig, runtimeConfig)
       const content = await callOpenAiCompatible(
         buildRoundTwoPrompt(question, role, roundOneOthers),
         0.7,
-        runtimeConfig
+        roleConfig
       )
       transcript.push({
         round: 2,
@@ -92,14 +112,21 @@ export async function debateRoutes(app: FastifyInstance) {
       })
     }
 
+    const finalRoleConfig = debateRoles.length > 0 ? debateRoles[debateRoles.length - 1].runtimeConfig : undefined
+    const finalRuntimeConfig = mergeRuntimeConfig(finalRoleConfig, runtimeConfig)
     const finalAnswer = await callOpenAiCompatible(
       buildFinalPrompt(question, transcript),
       0.3,
-      runtimeConfig
+      finalRuntimeConfig
     )
 
     return {
       question,
+      agents: debateRoles.map((item) => ({
+        id: item.id,
+        name: item.name,
+        responsibility: item.responsibility
+      })),
       transcript: transcript.map((item) => ({
         round: item.round,
         role: item.role,
@@ -108,6 +135,19 @@ export async function debateRoutes(app: FastifyInstance) {
       finalAnswer
     }
   })
+}
+
+function resolveDebateRoles(agents?: z.infer<typeof debateAgentSchema>[]): DebateRole[] {
+  if (!agents || agents.length === 0) {
+    return defaultDebateRoles
+  }
+
+  return agents.map((item, index) => ({
+    id: item.id?.trim() || `agent_${index + 1}`,
+    name: item.name.trim(),
+    responsibility: item.responsibility.trim(),
+    runtimeConfig: normalizeRuntimeConfig(item.llm)
+  }))
 }
 
 function normalizeRuntimeConfig(llm?: z.infer<typeof llmConfigSchema>): LlmRuntimeConfig | undefined {
@@ -126,6 +166,23 @@ function normalizeRuntimeConfig(llm?: z.infer<typeof llmConfigSchema>): LlmRunti
   }
 
   return config
+}
+
+function mergeRuntimeConfig(
+  primary?: LlmRuntimeConfig,
+  fallback?: LlmRuntimeConfig
+): LlmRuntimeConfig | undefined {
+  const merged: LlmRuntimeConfig = {
+    apiKey: primary?.apiKey ?? fallback?.apiKey,
+    baseUrl: primary?.baseUrl ?? fallback?.baseUrl,
+    model: primary?.model ?? fallback?.model
+  }
+
+  if (!merged.apiKey && !merged.baseUrl && !merged.model) {
+    return undefined
+  }
+
+  return merged
 }
 
 function buildRoundOnePrompt(question: string, role: DebateRole): LlmMessage[] {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
 const LLM_CONFIG_KEY = "moa.llm.config.v1"
+const AGENT_CONFIG_KEY = "moa.agent.config.v1"
 const SESSIONS_KEY = "moa.chat.sessions.v1"
 const ACTIVE_SESSION_KEY = "moa.chat.active.v1"
 
@@ -35,6 +36,70 @@ function createSession() {
       )
     ]
   }
+}
+
+const DEFAULT_AGENT_PRESETS = [
+  {
+    name: "分析师",
+    responsibility: "拆解问题并给出关键事实、前提和推理路径"
+  },
+  {
+    name: "质疑者",
+    responsibility: "寻找漏洞、反例和风险，挑战已有结论"
+  },
+  {
+    name: "整合者",
+    responsibility: "整合多方观点并给出可执行的最终方案"
+  }
+]
+
+function createAgentConfig(template = {}, defaultModel = "gpt-4o-mini") {
+  return {
+    id: uid(),
+    name: typeof template.name === "string" ? template.name : "",
+    responsibility: typeof template.responsibility === "string" ? template.responsibility : "",
+    model:
+      typeof template.model === "string" && template.model.trim() ? template.model : defaultModel,
+    baseUrl: typeof template.baseUrl === "string" ? template.baseUrl : "",
+    apiKey: typeof template.apiKey === "string" ? template.apiKey : ""
+  }
+}
+
+function createDefaultAgents(defaultModel = "gpt-4o-mini") {
+  return DEFAULT_AGENT_PRESETS.map((item) => createAgentConfig(item, defaultModel))
+}
+
+function normalizeAgents(raw, defaultModel = "gpt-4o-mini") {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null
+      }
+
+      const model =
+        typeof item.model === "string" && item.model.trim() ? item.model.trim() : defaultModel
+
+      return {
+        id: typeof item.id === "string" && item.id.trim() ? item.id.trim() : uid(),
+        name: typeof item.name === "string" ? item.name.trim() : "",
+        responsibility:
+          typeof item.responsibility === "string" ? item.responsibility.trim() : "",
+        model,
+        baseUrl: typeof item.baseUrl === "string" ? item.baseUrl.trim() : "",
+        apiKey: typeof item.apiKey === "string" ? item.apiKey.trim() : ""
+      }
+    })
+    .filter(
+      (item) =>
+        item &&
+        item.name.length > 0 &&
+        item.responsibility.length > 0 &&
+        item.model.length > 0
+    )
 }
 
 function parseAnswer(payload) {
@@ -153,6 +218,9 @@ export default function Page() {
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-4o-mini"
   })
+  const [agentConfigs, setAgentConfigs] = useState(() =>
+    createDefaultAgents("gpt-4o-mini")
+  )
 
   const endRef = useRef(null)
   const textareaRef = useRef(null)
@@ -228,20 +296,48 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
+    const fallbackConfig = {
+      apiKey: "",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini"
+    }
+
     try {
-      const stored = localStorage.getItem(LLM_CONFIG_KEY)
-      if (!stored) {
+      let nextConfig = fallbackConfig
+      const storedLlm = localStorage.getItem(LLM_CONFIG_KEY)
+      if (storedLlm) {
+        const parsedLlm = JSON.parse(storedLlm)
+        nextConfig = {
+          apiKey:
+            typeof parsedLlm?.apiKey === "string" ? parsedLlm.apiKey : fallbackConfig.apiKey,
+          baseUrl:
+            typeof parsedLlm?.baseUrl === "string" ? parsedLlm.baseUrl : fallbackConfig.baseUrl,
+          model:
+            typeof parsedLlm?.model === "string" && parsedLlm.model.trim()
+              ? parsedLlm.model.trim()
+              : fallbackConfig.model
+        }
+      }
+      setLlmConfig(nextConfig)
+
+      const storedAgents = localStorage.getItem(AGENT_CONFIG_KEY)
+      if (!storedAgents) {
+        setAgentConfigs(createDefaultAgents(nextConfig.model))
         return
       }
 
-      const parsed = JSON.parse(stored)
-      setLlmConfig((prev) => ({
-        apiKey: typeof parsed?.apiKey === "string" ? parsed.apiKey : prev.apiKey,
-        baseUrl: typeof parsed?.baseUrl === "string" ? parsed.baseUrl : prev.baseUrl,
-        model: typeof parsed?.model === "string" ? parsed.model : prev.model
-      }))
+      const parsedAgents = JSON.parse(storedAgents)
+      const normalizedAgents = normalizeAgents(parsedAgents, nextConfig.model)
+      if (normalizedAgents.length >= 2) {
+        setAgentConfigs(normalizedAgents)
+      } else {
+        setAgentConfigs(createDefaultAgents(nextConfig.model))
+      }
     } catch {
       localStorage.removeItem(LLM_CONFIG_KEY)
+      localStorage.removeItem(AGENT_CONFIG_KEY)
+      setLlmConfig(fallbackConfig)
+      setAgentConfigs(createDefaultAgents(fallbackConfig.model))
     }
   }, [])
 
@@ -252,6 +348,14 @@ export default function Page() {
       // ignore local storage write failure
     }
   }, [llmConfig])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(agentConfigs))
+    } catch {
+      // ignore local storage write failure
+    }
+  }, [agentConfigs])
 
   useEffect(() => {
     if (isWelcomeOnly) {
@@ -304,6 +408,36 @@ export default function Page() {
 
   const patchSession = (sessionId, updater) => {
     setSessions((prev) => prev.map((session) => (session.id === sessionId ? updater(session) : session)))
+  }
+
+  const patchAgent = (agentId, updater) => {
+    setAgentConfigs((prev) =>
+      prev.map((item) => (item.id === agentId ? updater(item) : item))
+    )
+  }
+
+  const handleAddAgent = () => {
+    const nextIndex = agentConfigs.length + 1
+    setAgentConfigs((prev) => [
+      ...prev,
+      createAgentConfig(
+        {
+          name: `智能体${nextIndex}`,
+          responsibility: "补充新的分析视角",
+          model: llmConfig.model.trim() || "gpt-4o-mini"
+        },
+        llmConfig.model.trim() || "gpt-4o-mini"
+      )
+    ])
+  }
+
+  const handleRemoveAgent = (agentId) => {
+    setAgentConfigs((prev) => {
+      if (prev.length <= 2) {
+        return prev
+      }
+      return prev.filter((item) => item.id !== agentId)
+    })
   }
 
   const handleCreateSession = () => {
@@ -363,13 +497,43 @@ export default function Page() {
     }))
 
     try {
+      if (agentConfigs.length < 2) {
+        throw new Error("至少需要 2 个智能体")
+      }
+
+      const preparedAgents = agentConfigs.map((item, index) => ({
+        id: item.id || `agent_${index + 1}`,
+        name: item.name.trim(),
+        responsibility: item.responsibility.trim(),
+        model: item.model.trim() || llmConfig.model.trim(),
+        baseUrl: item.baseUrl.trim(),
+        apiKey: item.apiKey.trim()
+      }))
+
+      const invalidIndex = preparedAgents.findIndex(
+        (item) => !item.name || !item.responsibility || !item.model
+      )
+      if (invalidIndex >= 0) {
+        throw new Error(`请完善第 ${invalidIndex + 1} 个智能体的名称、职责和模型`)
+      }
+
       const payload = {
         question: text,
         llm: {
           apiKey: llmConfig.apiKey.trim(),
           baseUrl: llmConfig.baseUrl.trim(),
           model: llmConfig.model.trim()
-        }
+        },
+        agents: preparedAgents.map((item, index) => ({
+          id: item.id || `agent_${index + 1}`,
+          name: item.name,
+          responsibility: item.responsibility,
+          llm: {
+            model: item.model,
+            ...(item.baseUrl ? { baseUrl: item.baseUrl } : {}),
+            ...(item.apiKey ? { apiKey: item.apiKey } : {})
+          }
+        }))
       }
 
       const response = await fetch(requestUrl, {
@@ -485,9 +649,14 @@ export default function Page() {
         ) : null}
 
         <section className="cgpt-config">
-          <h3 className="cgpt-panel-title">API config</h3>
+          <div className="cgpt-agent-toolbar">
+            <h3 className="cgpt-panel-title">多智能体配置</h3>
+            <button type="button" className="cgpt-mini-btn" onClick={handleAddAgent}>
+              新增
+            </button>
+          </div>
           <label className="cgpt-field">
-            <span>apiKey</span>
+            <span>默认 apiKey</span>
             <input
               type="password"
               value={llmConfig.apiKey}
@@ -502,7 +671,7 @@ export default function Page() {
             />
           </label>
           <label className="cgpt-field">
-            <span>baseUrl</span>
+            <span>默认 baseUrl</span>
             <input
               type="url"
               value={llmConfig.baseUrl}
@@ -517,7 +686,7 @@ export default function Page() {
             />
           </label>
           <label className="cgpt-field">
-            <span>model</span>
+            <span>默认 model</span>
             <input
               type="text"
               value={llmConfig.model}
@@ -531,7 +700,101 @@ export default function Page() {
               autoComplete="off"
             />
           </label>
-          <p className="cgpt-config-tip">Saved in browser local storage.</p>
+
+          <div className="cgpt-agent-list">
+            {agentConfigs.map((agent, index) => (
+              <div className="cgpt-agent-card" key={agent.id}>
+                <div className="cgpt-agent-head">
+                  <strong>智能体 {index + 1}</strong>
+                  <button
+                    type="button"
+                    className="cgpt-link-btn"
+                    onClick={() => handleRemoveAgent(agent.id)}
+                    disabled={agentConfigs.length <= 2}
+                  >
+                    删除
+                  </button>
+                </div>
+                <label className="cgpt-field">
+                  <span>名称</span>
+                  <input
+                    type="text"
+                    value={agent.name}
+                    onChange={(event) =>
+                      patchAgent(agent.id, (prev) => ({
+                        ...prev,
+                        name: event.target.value
+                      }))
+                    }
+                    placeholder="例如：分析师"
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="cgpt-field">
+                  <span>职责</span>
+                  <textarea
+                    value={agent.responsibility}
+                    onChange={(event) =>
+                      patchAgent(agent.id, (prev) => ({
+                        ...prev,
+                        responsibility: event.target.value
+                      }))
+                    }
+                    placeholder="描述该智能体应负责的思考方向"
+                    rows={2}
+                  />
+                </label>
+                <label className="cgpt-field">
+                  <span>模型</span>
+                  <input
+                    type="text"
+                    value={agent.model}
+                    onChange={(event) =>
+                      patchAgent(agent.id, (prev) => ({
+                        ...prev,
+                        model: event.target.value
+                      }))
+                    }
+                    placeholder="例如：gpt-4o-mini"
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="cgpt-field">
+                  <span>独立 baseUrl（可选）</span>
+                  <input
+                    type="url"
+                    value={agent.baseUrl}
+                    onChange={(event) =>
+                      patchAgent(agent.id, (prev) => ({
+                        ...prev,
+                        baseUrl: event.target.value
+                      }))
+                    }
+                    placeholder="留空则使用默认 baseUrl"
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="cgpt-field">
+                  <span>独立 apiKey（可选）</span>
+                  <input
+                    type="password"
+                    value={agent.apiKey}
+                    onChange={(event) =>
+                      patchAgent(agent.id, (prev) => ({
+                        ...prev,
+                        apiKey: event.target.value
+                      }))
+                    }
+                    placeholder="留空则使用默认 apiKey"
+                    autoComplete="off"
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+          <p className="cgpt-config-tip">
+            配置会保存到浏览器本地。每个智能体可独立覆盖 model/baseUrl/apiKey，留空时继承默认配置。
+          </p>
         </section>
 
         <section className="cgpt-stats">
