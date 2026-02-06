@@ -1,4 +1,4 @@
-﻿generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -127,6 +127,7 @@ model ProviderConfig {
   user     User      @relation(fields: [userId], references: [id])
   agents   Agent[]
   metrics  UsageMetric[]
+  strategyConfigs StrategyConfig[]
 }
 
 model ApiMapping {
