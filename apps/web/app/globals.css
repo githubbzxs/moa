@@ -45,24 +45,24 @@ body {
 
 .cgpt-sidebar {
   z-index: 20;
-  width: 320px;
+  width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
   border-right: 1px solid var(--border-color);
   background: var(--bg-sidebar);
   transition: width 0.22s ease, transform 0.22s ease;
 }
 
 .cgpt-sidebar.collapsed {
-  width: 88px;
+  width: 72px;
 }
 
 .cgpt-sidebar-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cgpt-primary-btn {
@@ -71,7 +71,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
+  height: 38px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: transparent;
@@ -98,8 +98,8 @@ body {
 
 .cgpt-ghost-btn {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: transparent;
@@ -125,11 +125,11 @@ body {
 
 .cgpt-session-item {
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-primary);
   text-align: left;
-  padding: 10px 12px;
+  padding: 8px 10px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -319,36 +319,37 @@ body {
 }
 
 .cgpt-main-head {
-  height: 64px;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 12px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-app);
 }
 
 .cgpt-main-title h1 {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 16px;
+  line-height: 1.25;
 }
 
 .cgpt-main-title p {
-  margin: 3px 0 0;
-  font-size: 12px;
+  margin: 2px 0 0;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
 .cgpt-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 18px min(6vw, 84px);
+  padding: 16px min(6vw, 72px);
 }
 
 .cgpt-message-row {
   display: flex;
-  margin-bottom: 14px;
+  width: min(100%, 760px);
+  margin: 0 auto 12px;
   animation: messageEnter 0.28s ease both;
 }
 
@@ -361,7 +362,7 @@ body {
 }
 
 .cgpt-message-bubble {
-  max-width: min(84%, 860px);
+  max-width: min(80%, 760px);
   border-radius: 16px;
   border: none;
   background: transparent;
@@ -376,16 +377,18 @@ body {
 }
 
 .cgpt-message-row.error .cgpt-message-bubble {
+  border: 1px solid #8a3a3a;
   border-color: #8a3a3a;
   background: #3a1f1f;
+  padding: 12px 14px;
 }
 
 .cgpt-message-bubble p {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.65;
-  font-size: 14px;
+  line-height: 1.7;
+  font-size: 15px;
 }
 
 .cgpt-transcript {
@@ -441,8 +444,8 @@ body {
 }
 
 .cgpt-composer-wrap {
-  border-top: 1px solid var(--border-color);
-  padding: 12px min(6vw, 84px) 20px;
+  border-top: none;
+  padding: 10px min(6vw, 72px) 16px;
   background: var(--bg-app);
 }
 
@@ -451,10 +454,10 @@ body {
   align-items: flex-end;
   gap: 10px;
   border: none;
-  border-radius: 28px;
+  border-radius: 24px;
   background: #303030;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 0 1px rgba(255, 255, 255, 0.2);
-  padding: 10px;
+  padding: 8px 10px;
 }
 
 .cgpt-composer textarea {
@@ -463,21 +466,21 @@ body {
   background: transparent;
   color: var(--text-primary);
   resize: none;
-  min-height: 28px;
+  min-height: 24px;
   max-height: 180px;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
   outline: none;
 }
 
 .cgpt-composer button {
-  height: 40px;
-  min-width: 74px;
+  height: 36px;
+  min-width: 64px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--accent);
   color: var(--accent-contrast);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
@@ -539,13 +542,13 @@ body {
     top: 0;
     left: 0;
     bottom: 0;
-    width: min(84vw, 320px);
+    width: min(84vw, 280px);
     transform: translateX(-100%);
     box-shadow: 20px 0 40px rgba(0, 0, 0, 0.45);
   }
 
   .cgpt-sidebar.collapsed {
-    width: min(84vw, 320px);
+    width: min(84vw, 280px);
   }
 
   .cgpt-sidebar.mobile-open {
@@ -566,10 +569,10 @@ body {
   }
 
   .cgpt-composer-wrap {
-    padding: 10px 14px 14px;
+    padding: 8px 14px 12px;
   }
 
   .cgpt-message-bubble {
-    max-width: 92%;
+    max-width: 90%;
   }
 }
