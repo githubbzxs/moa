@@ -322,6 +322,7 @@ body {
   min-height: 0;
   min-width: 0;
   background: var(--bg-app);
+  overflow: hidden;
 }
 
 .cgpt-main-head {
@@ -468,9 +469,12 @@ body {
 }
 
 .cgpt-composer-wrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   border-top: none;
   padding: 12px 24px 18px;
-  background: var(--bg-app);
+  background: linear-gradient(180deg, rgba(33, 33, 33, 0), rgba(33, 33, 33, 0.92) 18%, #212121 100%);
 }
 
 .cgpt-composer {
@@ -479,7 +483,7 @@ body {
   gap: 10px;
   width: min(100%, 820px);
   margin: 0 auto;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
   background: #303030;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 0 1px rgba(255, 255, 255, 0.2);
@@ -520,13 +524,6 @@ body {
   color: #b0b0b0;
   opacity: 1;
   cursor: not-allowed;
-}
-
-.cgpt-endpoint {
-  width: min(100%, 820px);
-  margin: 8px auto 0;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .cgpt-backdrop {
@@ -604,7 +601,9 @@ body {
   }
 
   .cgpt-composer-wrap {
+    position: static;
     padding: 8px 14px 12px;
+    background: var(--bg-app);
   }
 
   .cgpt-message-bubble {
