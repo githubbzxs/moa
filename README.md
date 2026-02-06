@@ -1,20 +1,26 @@
-﻿# 多 Agent 辩论平台
+# 多智能体讨论问答系统
 
-这是一个仿 ChatGPT UI 的多 Agent 辩论平台，包含前端（Vue3）与后端（Fastify + Prisma + PostgreSQL）。
+这是一个“单问题输入 -> 多智能体后台讨论 -> 最终综合答案输出”的系统，包含前端（Vue3）与后端（Fastify）。
+
+核心流程：
+
+1. 用户输入问题。
+2. 后端 3 个角色进行 2 轮讨论（分析师、质疑者、整合者）。
+3. 后端基于完整讨论记录生成最终综合答案并返回给前端。
 
 ## 一键部署到 Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fgithubbzxs%2Fmoa)
 
-部署前请在 Vercel 配置以下环境变量（按需填写）：
+部署前请在 Vercel 配置以下环境变量：
 
-- `DATABASE_URL`：数据库连接字符串（建议使用 Vercel Postgres）。
-- `JWT_SECRET`：JWT 签名密钥。
-- `API_KEY_SECRET`：API Key 签名密钥。
-- `WEB_ORIGIN`：前端访问地址，例如 `https://<your-domain>.vercel.app`。
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALLBACK_URL`：如需 Google OAuth 再配置。
-- `VITE_API_BASE_URL`：建议设置为 `/api`，与 Vercel Functions 同域。
-- `VITE_USE_API`：需要启用远程 API 时设置为 `true`。
+- `LLM_API_KEY`：模型服务 API Key（必填）。
+- `LLM_BASE_URL`：模型服务 Base URL（可选，默认 `https://api.openai.com/v1`）。
+- `LLM_MODEL`：模型名称（可选，默认 `gpt-4o-mini`）。
+- `VITE_API_BASE_URL`：前端请求后端地址。Vercel 同域部署建议设为 `/api`。
+- `WEB_ORIGIN`：允许跨域来源（本地开发默认 `http://localhost:3000`）。
+
+说明：当前主流程不依赖数据库即可运行；数据库相关配置仅用于仓库中其他扩展接口。
 
 ## 本地开发
 
@@ -24,12 +30,30 @@
 2. 安装依赖：`npm install`
 3. 启动开发：`npm run dev`
 4. 前端地址：`http://localhost:3000`
+5. 后端接口：`POST http://localhost:8080/api/debate/answer`
 
-## 后端初始化（首次）
+## 接口说明
 
-1. 确保本机 PostgreSQL 已启动，并创建数据库 `moa`
-2. 生成 Prisma Client：`npx prisma generate --schema apps/api/prisma/schema.prisma`
-3. 初始化数据库结构：`npx prisma migrate dev --schema apps/api/prisma/schema.prisma --name init`
+请求体：
+
+```json
+{
+  "question": "你的问题"
+}
+```
+
+响应体：
+
+```json
+{
+  "question": "你的问题",
+  "transcript": [
+    { "round": 1, "role": "分析师", "content": "..." },
+    { "round": 1, "role": "质疑者", "content": "..." }
+  ],
+  "finalAnswer": "最终综合答案"
+}
+```
 
 ## 目录结构
 
