@@ -167,6 +167,14 @@ export default function Page() {
   }, [activeSessionId, sessions])
 
   const currentMessages = useMemo(() => activeSession?.messages || [], [activeSession])
+  const isWelcomeOnly = useMemo(() => {
+    if (currentMessages.length !== 1) {
+      return false
+    }
+
+    const only = currentMessages[0]
+    return Boolean(only && only.role === "assistant" && !only.loading && !only.isError)
+  }, [currentMessages])
 
   useEffect(() => {
     const initialSessions = loadInitialSessions()
@@ -438,7 +446,7 @@ export default function Page() {
             <span className="cgpt-text">New chat</span>
           </button>
           <button className="cgpt-ghost-btn" type="button" onClick={handleToggleSidebar} aria-label="toggle sidebar">
-            {isMobile ? "x" : sidebarCollapsed ? ">" : "<"}
+            {isMobile ? "\u00D7" : sidebarCollapsed ? "\u203A" : "\u2039"}
           </button>
         </div>
 
@@ -565,51 +573,52 @@ export default function Page() {
         <header className="cgpt-main-head">
           {isMobile ? (
             <button className="cgpt-ghost-btn" type="button" onClick={handleToggleSidebar} aria-label="menu">
-              ☰
+              {"\u2630"}
             </button>
           ) : null}
           <div className="cgpt-main-title">
-            <h1>ChatGPT Clone</h1>
-            <p>React + Next with motion and charts</p>
+            <h1>ChatGPT</h1>
           </div>
         </header>
 
-        <section className="cgpt-messages">
-          {currentMessages.map((message, index) => (
-            <article
-              key={message.id}
-              className={[
-                "cgpt-message-row",
-                message.role,
-                message.isError ? "error" : "",
-                message.loading ? "loading" : ""
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-            >
-              <div className="cgpt-message-bubble">
-                {message.loading ? <LoadingDots /> : <p>{message.content}</p>}
+        <section className={`cgpt-messages ${isWelcomeOnly ? "empty" : ""}`}>
+          <div className="cgpt-thread">
+            {currentMessages.map((message, index) => (
+              <article
+                key={message.id}
+                className={[
+                  "cgpt-message-row",
+                  message.role,
+                  message.isError ? "error" : "",
+                  message.loading ? "loading" : ""
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+              >
+                <div className="cgpt-message-bubble">
+                  {message.loading ? <LoadingDots /> : <p>{message.content}</p>}
 
-                {Array.isArray(message.transcript) && message.transcript.length > 0 ? (
-                  <details className="cgpt-transcript">
-                    <summary>Show debate transcript</summary>
-                    <ul>
-                      {message.transcript.map((turn, turnIndex) => (
-                        <li key={`${message.id}-${turnIndex}`}>
-                          <strong>
-                            Round {turn?.round || "?"} - {turn?.role || "agent"}
-                          </strong>
-                          <p>{typeof turn?.content === "string" ? turn.content : ""}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ) : null}
-              </div>
-            </article>
-          ))}
-          <div ref={endRef} />
+                  {Array.isArray(message.transcript) && message.transcript.length > 0 ? (
+                    <details className="cgpt-transcript">
+                      <summary>Show debate transcript</summary>
+                      <ul>
+                        {message.transcript.map((turn, turnIndex) => (
+                          <li key={`${message.id}-${turnIndex}`}>
+                            <strong>
+                              Round {turn?.round || "?"} - {turn?.role || "agent"}
+                            </strong>
+                            <p>{typeof turn?.content === "string" ? turn.content : ""}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+            <div ref={endRef} />
+          </div>
         </section>
 
         <footer className="cgpt-composer-wrap">
@@ -644,3 +653,4 @@ export default function Page() {
     </div>
   )
 }
+
