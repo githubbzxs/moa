@@ -307,6 +307,13 @@ body {
   justify-content: center;
   min-height: 38px;
   padding: 8px;
+  position: relative;
+}
+
+.cgpt-sidebar.collapsed .cgpt-session-item::before {
+  content: "●";
+  font-size: 8px;
+  color: var(--text-muted);
 }
 
 .cgpt-main {
@@ -348,8 +355,8 @@ body {
 
 .cgpt-message-row {
   display: flex;
-  width: min(100%, 760px);
-  margin: 0 auto 12px;
+  width: 100%;
+  margin: 0 0 12px;
   animation: messageEnter 0.28s ease both;
 }
 
@@ -362,7 +369,7 @@ body {
 }
 
 .cgpt-message-bubble {
-  max-width: min(80%, 760px);
+  max-width: min(80%, 740px);
   border-radius: 16px;
   border: none;
   background: transparent;
@@ -370,10 +377,15 @@ body {
 }
 
 .cgpt-message-row.user .cgpt-message-bubble {
+  margin-left: auto;
   border-radius: 20px;
   border: none;
   background: var(--bg-user);
   padding: 12px 14px;
+}
+
+.cgpt-message-row.assistant .cgpt-message-bubble {
+  margin-right: auto;
 }
 
 .cgpt-message-row.error .cgpt-message-bubble {

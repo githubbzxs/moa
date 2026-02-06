@@ -563,9 +563,11 @@ export default function Page() {
 
       <main className="cgpt-main">
         <header className="cgpt-main-head">
-          <button className="cgpt-ghost-btn" type="button" onClick={handleToggleSidebar} aria-label="menu">
-            ☰
-          </button>
+          {isMobile ? (
+            <button className="cgpt-ghost-btn" type="button" onClick={handleToggleSidebar} aria-label="menu">
+              ☰
+            </button>
+          ) : null}
           <div className="cgpt-main-title">
             <h1>ChatGPT Clone</h1>
             <p>React + Next with motion and charts</p>
